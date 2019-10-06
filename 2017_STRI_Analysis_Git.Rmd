@@ -1,0 +1,153 @@
+---
+title: "Smithsonian Tropical Research Institute - Elevated CO2 Experiment"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r Packages}
+library(tidyverse)
+library(plotrix)
+
+mytheme <- theme_bw() + theme(text = element_text(size = 14),
+                              panel.grid = element_blank())
+```
+
+```{r Datasets}
+plantmass <- read.csv("~/Documents/Research/ResearchProjects/2017_STRI/2017_STRI_Data/2017_STRI_GreenhouseMass.csv",
+                      header = TRUE, stringsAsFactors = TRUE, na.strings = "NA")
+enzymes <- read.csv("~/Documents/Research/ResearchProjects/2017_STRI/2017_STRI_Data/2017_STRI_Enzymes.csv",
+                      header = TRUE, stringsAsFactors = TRUE, na.strings = "NA")
+```
+
+# Plant Mass
+```{r Summary}
+
+plantmass.sum <- plantmass %>% 
+  select(-c(PlantNumber)) %>% 
+  group_by(TreeSpecies, Treatment) %>% 
+   mutate(abovemass = Leaf_DryWt + Stem_DryWt) %>% 
+  summarise_each(funs(mean(., na.rm = TRUE), sd(., na.rm = TRUE), std.error(., na.rm = TRUE)))
+```
+
+```{r Leaf surface area}
+# bar plot of surface area by Treatment and Tree Species
+leafsa.plot <- ggplot(data = plantmass.sum, aes(x = reorder(TreeSpecies, LeafSA_mean), y = LeafSA_mean, fill = Treatment)) + 
+  geom_bar(stat = "identity", colour = "black", position = position_dodge(0.9)) +
+  geom_errorbar(aes(ymin = LeafSA_mean - LeafSA_std.error,
+                    ymax = LeafSA_mean + LeafSA_std.error),
+                width = 0.2,
+                position = position_dodge(0.9)) +
+  mytheme +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1),
+        legend.position = c(0.3, 0.75),
+        axis.title.x = element_blank()) +
+  scale_fill_manual(values = c("white", "gray")) +
+  ylab(expression(Leaf~surface~area~(cm^-2)))
+
+ggsave("bar_leafsa.pdf", width = 8, height = 8, units = "cm")
+```
+
+```{r Leaf and stem dry weight}
+abovemass.plot <- ggplot(data = plantmass.sum, aes(x = reorder(TreeSpecies, abovemass_mean), y = abovemass_mean, fill = Treatment)) +
+  geom_bar(stat = "identity", colour = "black", position = position_dodge(0.9)) +
+  geom_errorbar(aes(ymin = abovemass_mean - abovemass_std.error,
+                    ymax = abovemass_mean + abovemass_std.error),
+                width = 0.2,
+                position = position_dodge(0.9)) +
+  mytheme +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1),
+        legend.position = c(0.3, 0.75),
+        axis.title.x = element_blank()) +
+  scale_fill_manual(values = c("white", "gray")) +
+  ylab(expression(Leaf~and~stem~(g[DW]^{-1})))
+
+ggsave("bar_abovemass.pdf", width = 8, height = 8, units = "cm")
+```
+
+```{r Root dry weight}
+rootmass.plot <- ggplot(data = plantmass.sum, aes(x = reorder(TreeSpecies, Root_DryWt_mean), y = Root_DryWt_mean, fill = Treatment)) +
+  geom_bar(stat = "identity", colour = "black", position = position_dodge(0.9)) +
+  geom_errorbar(aes(ymin = Root_DryWt_mean - Root_DryWt_std.error,
+                    ymax = Root_DryWt_mean + Root_DryWt_std.error),
+                width = 0.2,
+                position = position_dodge(0.9)) +
+  mytheme +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1),
+        legend.position = c(0.3, 0.75),
+        axis.title.x = element_blank()) +
+  scale_fill_manual(values = c("white", "gray")) +
+  scale_y_continuous(limits = c(0.0, 0.6), breaks = c(0.0, 0.2, 0.4, 0.6)) +
+  ylab(expression(Root~mass~(g[DW]^{-1})))
+
+ggsave("bar_rootmass.pdf", width = 8, height = 8, units = "cm")
+```
+
+
+# Enzymes
+```{r Summary}
+
+enzymes.sum <- enzymes %>%
+  select(c(-PlantNumber)) %>% 
+  filter(TreeSpeciesCode != "SOIL") %>% 
+  group_by(TreeSpeciesCode, Treatment) %>% 
+  summarise_each(funs(mean(., na.rm = TRUE), std.error(.,na.rm = TRUE), sd(., na.rm = TRUE)))
+View(enzymes.sum)
+```
+
+```{r Root phosphatase}
+rootpase.plot <- ggplot(data = enzymes.sum, aes(x = reorder(TreeSpeciesCode, RootPase_mean), y = RootPase_mean, fill = Treatment)) +
+  geom_bar(stat = "identity", colour = "black", position = position_dodge(0.9)) +
+  geom_errorbar(aes(ymin = RootPase_mean - RootPase_std.error,
+                    ymax = RootPase_mean + RootPase_std.error),
+                width = 0.2, position = position_dodge(0.9)) +
+  mytheme +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1),
+        legend.position = c(0.35, 0.8),
+        axis.title.x = element_blank()) +
+  scale_fill_manual(values = c("white", "gray")) +
+  ylab(expression(atop(paste(Root~phosphatase),
+                  (mu~mol~pnp~g[rootDW]^{-1}))))
+
+ggsave("bar_rootpase.pdf", width = 8, height = 8, units = "cm")
+```
+
+```{r Soil Mup}
+
+soilmup.plot <- ggplot(data = enzymes.sum, aes(x = reorder(TreeSpeciesCode, Mup_mean), y = Mup_mean, fill = Treatment)) +
+  geom_bar(stat = "identity", colour = "black", position = position_dodge(0.9)) +
+  geom_errorbar(aes(ymin = Mup_mean - Mup_std.error,
+                    ymax = Mup_mean + Mup_std.error),
+                width = 0.2, position = position_dodge(0.9)) +
+  mytheme +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1),
+        axis.title.x = element_blank(),
+        aspect.ratio = 1) +
+  scale_fill_manual(values = c("white", "gray")) +
+  ylab(expression(atop(paste(Soil~phosphomonoesterase),
+                  (nmol~MU~g[soilDW]^{-1}))))
+
+ggsave("bar_mup.pdf")
+
+```
+
+```{r Soil Bismup}
+
+soilbismup.plot <- ggplot(data = enzymes.sum, aes(x = reorder(TreeSpeciesCode, Bismup_mean), y = Bismup_mean, fill = Treatment)) +
+  geom_bar(stat = "identity", colour = "black", position = position_dodge(0.9)) +
+  geom_errorbar(aes(ymin = Bismup_mean - Bismup_std.error,
+                    ymax = Bismup_mean +Bismup_std.error),
+                width = 0.2, position = position_dodge(0.9)) +
+  mytheme +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1),
+        axis.title.x = element_blank(),
+        aspect.ratio = 1) +
+  scale_fill_manual(values = c("white", "gray")) +
+  ylab(expression(atop(paste(Soil~phosphodiesterase),
+                  (nmol~MU~g[soilDW]^{-1}))))
+
+ggsave("bar_bismup.pdf")
+
+```
+
+
